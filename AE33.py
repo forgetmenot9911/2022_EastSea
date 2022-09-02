@@ -2,6 +2,7 @@ from matplotlib.dates import DateFormatter
 from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 
+import numpy as np
 import pandas as pd
 from pandas.plotting import register_matplotlib_converters
 import datetime, os, warnings;  warnings.filterwarnings('ignore')
@@ -111,7 +112,16 @@ def create_plot( x, y, yunits, title, ytitle):
     ax_scatter.set_ylim((lim0-extra_space, lim1+extra_space))
     # the box plot:
     meanpointprops = dict(marker='D')
-    ax_box.boxplot(y.dropna(), showmeans=True, meanprops=meanpointprops)
+    medianlineprops = dict(color='black')
+    ax_box.boxplot(y.dropna(), showmeans=True, meanprops=meanpointprops, medianprops=medianlineprops)
+    boxdict={
+        # 'max':y.dropna().max(),  # 有问题，得到的是包含异常值的max
+        'Third quartile':np.percentile(y.dropna(), 75),
+        'median':np.median(y.dropna()),
+        'First quartile':np.percentile(y.dropna(), 25),
+        'min':y.dropna().min()
+    }
+    print(boxdict)
     ax_box.set_ylim(ax_scatter.get_ylim())
     mu = y.mean()
     sigma = y.std()
