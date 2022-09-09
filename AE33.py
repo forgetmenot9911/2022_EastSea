@@ -103,25 +103,31 @@ def create_plot( x, y, yunits, title, ytitle):
     lim0 = y.min()
     lim1 = y.max()
     extra_space = (lim1 - lim0)/10
-    # the scatter plot:
+    # the line plot:
     ax_scatter.plot( x, y )
     ax_scatter.set_xlabel('date')
     ax_scatter.set_ylabel(ytitle + ' (' + yunits + ')')
     ax_scatter.set(title=title)
     ax_scatter.xaxis.set_major_formatter(DateFormatter('%b-%d'))
     ax_scatter.set_ylim((lim0-extra_space, lim1+extra_space))
+    # the scatter(outlier) plot:
+    boxdict={
+        # 'max':y.dropna().max(),  # 有问题，得到的是包含异常值的max
+        'Q3':np.percentile(y.dropna(), 75),
+        'median':np.median(y.dropna()),
+        'Q1':np.percentile(y.dropna(), 25),
+        'min':y.dropna().min()
+    }
+    # print(boxdict)
+    QR=boxdict['Q3'] - boxdict['Q1']
+    low_limit=boxdict['Q1'] - 1.5 * QR
+    up_limit=boxdict['Q3'] + 1.5 * QR
+    outliers=y[(y < low_limit) + (y > up_limit)]
+    ax_scatter.scatter(x[outliers.index],outliers)
     # the box plot:
     meanpointprops = dict(marker='D')
     medianlineprops = dict(color='black')
     ax_box.boxplot(y.dropna(), showmeans=True, meanprops=meanpointprops, medianprops=medianlineprops)
-    boxdict={
-        # 'max':y.dropna().max(),  # 有问题，得到的是包含异常值的max
-        'Third quartile':np.percentile(y.dropna(), 75),
-        'median':np.median(y.dropna()),
-        'First quartile':np.percentile(y.dropna(), 25),
-        'min':y.dropna().min()
-    }
-    print(boxdict)
     ax_box.set_ylim(ax_scatter.get_ylim())
     mu = y.mean()
     sigma = y.std()
