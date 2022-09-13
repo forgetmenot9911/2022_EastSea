@@ -57,20 +57,20 @@ units = {
             'BC7': 'ng/m$^3$',
             }
 def read_ae33():
-    file_dir = './AE33 0409-0426/'# 存放AE33文件（.dat）的目录
+    file_dir = './AE33 0409-0426/'# where to read AE33 (.dat)
     files = os.listdir(file_dir)
-    df1 = pd.read_table(os.path.join(file_dir, files[0]),skiprows=8,header=None,sep='\s+')  #先读取第一个
+    df1 = pd.read_table(os.path.join(file_dir, files[0]),skiprows=8,header=None,sep='\s+')  #read the first
 
-    for file in files[1:]:#再拼接其余的
+    for file in files[1:]:# continue to read other files
         df2 = pd.read_table(os.path.join(file_dir, file),skiprows=8,header=None,sep='\s+')
         df1 = pd.concat((df1, df2), axis=0, join='inner')
     df=df1
     del df2,df1
     df=df.reset_index(drop=True)
     df.columns=ae33keys
-    df['Dateandtime']=df['Date']+' '+df['Time'] # 合并日期与时刻，方便后续计算
+    df['Dateandtime']=df['Date']+' '+df['Time'] # connect date and time
     pd.to_datetime(df['Dateandtime'],format='%Y/%m/%d %H:%M:%S')
-    # optional：取用整点时刻数据
+    # optional：use data on the hour
     df = df[df['Dateandtime'].apply(lambda x:x[-6:]==':00:00')]
     
     df=df.reset_index(drop=True)
@@ -78,7 +78,11 @@ def read_ae33():
         df['Dateandtime'][i]=datetime.datetime.strptime(str(df['Dateandtime'][i]),'%Y/%m/%d %H:%M:%S')
     return df
 
-def create_plot( x, y, yunits, title, ytitle):
+def create_plot( x, y, yunits, title, ytitle, y1=None, y1title=None):
+    '''
+    y1, y1title: [optional]
+    y & y1: left & right
+    '''
     plt.style.use('ggplot')
     register_matplotlib_converters()
     
@@ -123,6 +127,8 @@ def create_plot( x, y, yunits, title, ytitle):
     low_limit=boxdict['Q1'] - 1.5 * QR
     up_limit=boxdict['Q3'] + 1.5 * QR
     outliers=y[(y < low_limit) + (y > up_limit)]
+    print('outliers:')
+    print(outliers)
     ax_scatter.scatter(x[outliers.index],outliers)
     # the box plot:
     meanpointprops = dict(marker='D')
@@ -140,19 +146,19 @@ def create_plot( x, y, yunits, title, ytitle):
 
 def main():
     df=read_ae33()
-    lamda:int=880   # 选取分析的波长（拼写错误是因为lambda是关键字）
-    # 目标数据（挑选范围为：BCXX,BCX,BB）
+    lamda:int=880   # Select the wavelength to read
+    # Select the target data（range：BCXX,BCX,BB）
     # BCkey = 'BB'
     BCkey = str(wavelengths.get(lamda))
     if BCkey!='BB':
-        y = df[BCkey]/1000  # 单位转换: ng/m3->μg/m3     
-    # 单位
+        y = df[BCkey]/1000  # unit conversion: ng/m3->μg/m3     
+    # unit
     unit = units.get(BCkey) 
-    # 图题                 
+    # plot title                 
     plotTitle = "Aethalometer Model AE33"
     if BCkey!='BB':
         plotTitle = plotTitle + " ($\lambda=$" + str(lamda) + "nm)"
-    # y轴标题
+    # Y-axis title
     if BCkey=='BB':
         ytitle = "Biomass Burning Fraction"
     else:
