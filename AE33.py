@@ -74,22 +74,26 @@ def read_ae33():
     df = df[df['Dateandtime'].apply(lambda x:x[-6:]==':00:00')]
     
     df=df.reset_index(drop=True)
-    for i in range(len(df)):
-        df['Dateandtime'][i]=datetime.datetime.strptime(str(df['Dateandtime'][i]),'%Y/%m/%d %H:%M:%S')
+    df['Dateandtime']=pd.to_datetime(df['Dateandtime'],format='%Y/%m/%d %H:%M:%S')
+    # deal with BCX (unit conversion: ng/m3->μg/m3)
+    for i in ['BC1','BC2','BC3','BC4','BC5','BC6','BC7']:
+        df[i]=df[i]/1000     
     return df
 
-def create_plot( x, y, yunits, title, ytitle, y1=None, y1title=None):
+def create_plot( x, y, yunits,  ytitle, y1):
     '''
     y1, y1title: [optional]
     y & y1: left & right
     '''
-    plt.style.use('ggplot')
+    plt.style.use('bmh')
+    plt.rcParams['axes.unicode_minus'] = False 
+    plt.rcParams['font.sans-serif'] = ['Times New Roman']
     register_matplotlib_converters()
     
     # definitions for the axes
     left, width = 0.1, 0.7
     bottom, height = 0.15, 0.75
-    spacing = 0.005
+    spacing = 0.025
     box_width = 1 - (1.5*left + width + spacing)
 
     rect_scatter = [left, bottom, width, height]
@@ -98,8 +102,8 @@ def create_plot( x, y, yunits, title, ytitle, y1=None, y1title=None):
     # start with a rectangular Figure
     box = plt.figure(figsize=(12, 6))
 
-    ax_scatter = plt.axes(rect_scatter)
-    ax_scatter.tick_params(direction='in', top=False, right=True)
+    ax = plt.axes(rect_scatter)
+    ax.tick_params(direction='in', top=False, right=True)
     ax_box = plt.axes(rect_box)
     ax_box.tick_params(direction='in', labelleft=False, labelbottom=False)
 
@@ -108,12 +112,10 @@ def create_plot( x, y, yunits, title, ytitle, y1=None, y1title=None):
     lim1 = y.max()
     extra_space = (lim1 - lim0)/10
     # the line plot:
-    ax_scatter.plot( x, y )
-    ax_scatter.set_xlabel('date')
-    ax_scatter.set_ylabel(ytitle + ' (' + yunits + ')')
-    ax_scatter.set(title=title)
-    ax_scatter.xaxis.set_major_formatter(DateFormatter('%b-%d'))
-    ax_scatter.set_ylim((lim0-extra_space, lim1+extra_space))
+    line1 = ax.plot( x, y ,c='black',lw=0.5)
+    ax.set_ylabel(ytitle + ' (' + yunits + ')')
+    ax.xaxis.set_major_formatter(DateFormatter('%b-%d'))
+    ax.set_ylim((lim0-extra_space, lim1+extra_space))
     # the scatter(outlier) plot:
     boxdict={
         # 'max':y.dropna().max(),  # 有问题，得到的是包含异常值的max
@@ -127,14 +129,23 @@ def create_plot( x, y, yunits, title, ytitle, y1=None, y1title=None):
     low_limit=boxdict['Q1'] - 1.5 * QR
     up_limit=boxdict['Q3'] + 1.5 * QR
     outliers=y[(y < low_limit) + (y > up_limit)]
-    print('outliers:')
-    print(outliers)
-    ax_scatter.scatter(x[outliers.index],outliers)
+    ## print('outliers:',outliers)
+    scatter1 = ax.scatter(x[outliers.index],outliers,c='black',marker='o',edgecolor='k',alpha=0.75,zorder=2)
+    # twinx
+    ax2=ax.twinx()
+    ax2.tick_params(axis='y',which='major',direction='in')
+    ax2.set_yticks([0,45,90,135,180,225,270,315,360])
+    ax2.set_yticklabels(['N','NE','E','SE','S','SW','W','NW','N'])
+    # for ticklabel in ax2.yaxis.get_ticklabels():
+    #     ticklabel.set_position([-1,-1])
+
+    scatter2 = ax2.scatter( x, y1 ,c='black',marker='D',s=4)
+    ax.legend([scatter1,scatter2],['outliers','Relative wind orient'],loc='upper left')
     # the box plot:
     meanpointprops = dict(marker='D')
     medianlineprops = dict(color='black')
     ax_box.boxplot(y.dropna(), showmeans=True, meanprops=meanpointprops, medianprops=medianlineprops)
-    ax_box.set_ylim(ax_scatter.get_ylim())
+    ax_box.set_ylim(ax.get_ylim())
     mu = y.mean()
     sigma = y.std()
     text = r'$\mu={0:.2f},\ \sigma={1:.3f}$'.format(mu, sigma)
@@ -147,24 +158,9 @@ def create_plot( x, y, yunits, title, ytitle, y1=None, y1title=None):
 def main():
     df=read_ae33()
     lamda:int=880   # Select the wavelength to read
-    # Select the target data（range：BCXX,BCX,BB）
-    # BCkey = 'BB'
     BCkey = str(wavelengths.get(lamda))
-    if BCkey!='BB':
-        y = df[BCkey]/1000  # unit conversion: ng/m3->μg/m3     
-    # unit
     unit = units.get(BCkey) 
-    # plot title                 
-    plotTitle = "Aethalometer Model AE33"
-    if BCkey!='BB':
-        plotTitle = plotTitle + " ($\lambda=$" + str(lamda) + "nm)"
-    # Y-axis title
-    if BCkey=='BB':
-        ytitle = "Biomass Burning Fraction"
-    else:
-        ytitle="Equivalent Black Carbon"
-    x = df.Dateandtime
-    create_plot( x, y, yunits=unit, title=plotTitle, ytitle=ytitle)
+    create_plot( x=df['Dateandtime'], y=df[BCkey], yunits=unit, ytitle="Equivalent Black Carbon")
 
 if __name__ == '__main__':
     main()

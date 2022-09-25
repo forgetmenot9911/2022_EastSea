@@ -29,8 +29,7 @@ def read_meteo():
     # reset index，remove origin index
     df = df.reset_index(drop=True)
     # reset timestamp
-    for i in range(len(df)):
-        df.yymmddhhmmss[i]=datetime.datetime.strptime('20'+str(df.yymmddhhmmss[i]),'%Y%m%d%H%M%S')
+    df['yymmddhhmmss']=pd.to_datetime(df['yymmddhhmmss'],format='%y%m%d%H%M%S')
     # optional：use data on the hour
     df = df[df['yymmddhhmmss'].apply(lambda x:x.minute==0 and x.second==0)]
     # optional：change this column's name to fit AE33 data
