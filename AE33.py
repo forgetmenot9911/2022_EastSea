@@ -1,3 +1,5 @@
+from cProfile import label
+from turtle import color
 from matplotlib.dates import DateFormatter
 from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
@@ -80,11 +82,13 @@ def read_ae33():
         df[i]=df[i]/1000     
     return df
 
-def create_plot( x, y, yunits,  ytitle, y1):
+def plot_anal( x, y, yunits,  ytitle, y1):
     '''
+    绘制分析折线图
     y1, y1title: [optional]
     y & y1: left & right
     '''
+    from matplotlib.cbook import boxplot_stats 
     plt.style.use('bmh')
     plt.rcParams['axes.unicode_minus'] = False 
     plt.rcParams['font.sans-serif'] = ['Times New Roman']
@@ -95,13 +99,11 @@ def create_plot( x, y, yunits,  ytitle, y1):
     bottom, height = 0.15, 0.75
     spacing = 0.025
     box_width = 1 - (1.5*left + width + spacing)
-
     rect_scatter = [left, bottom, width, height]
     rect_box = [left + width + spacing, bottom, box_width, height]
 
     # start with a rectangular Figure
     box = plt.figure(figsize=(12, 6))
-
     ax = plt.axes(rect_scatter)
     ax.tick_params(direction='in', top=False, right=True)
     ax_box = plt.axes(rect_box)
@@ -111,12 +113,10 @@ def create_plot( x, y, yunits,  ytitle, y1):
     lim0 = y.min()
     lim1 = y.max()
     extra_space = (lim1 - lim0)/10
-    # the line plot:
-    line1 = ax.plot( x, y ,c='black',lw=0.5)
     ax.set_ylabel(ytitle + ' (' + yunits + ')')
     ax.xaxis.set_major_formatter(DateFormatter('%b-%d'))
     ax.set_ylim((lim0-extra_space, lim1+extra_space))
-    # the scatter(outlier) plot:
+    # 找到outliers:
     boxdict={
         # 'max':y.dropna().max(),  # 有问题，得到的是包含异常值的max
         'Q3':np.percentile(y.dropna(), 75),
@@ -124,43 +124,58 @@ def create_plot( x, y, yunits,  ytitle, y1):
         'Q1':np.percentile(y.dropna(), 25),
         'min':y.dropna().min()
     }
-    # print(boxdict)
     QR=boxdict['Q3'] - boxdict['Q1']
     low_limit=boxdict['Q1'] - 1.5 * QR
     up_limit=boxdict['Q3'] + 1.5 * QR
     outliers=y[(y < low_limit) + (y > up_limit)]
-    ## print('outliers:',outliers)
+    ## main Axe
     scatter1 = ax.scatter(x[outliers.index],outliers,c='black',marker='o',edgecolor='k',alpha=0.75,zorder=2)
-    # twinx
-    ax2=ax.twinx()
-    ax2.tick_params(axis='y',which='major',direction='in')
-    ax2.set_yticks([0,45,90,135,180,225,270,315,360])
-    ax2.set_yticklabels(['N','NE','E','SE','S','SW','W','NW','N'])
-    # for ticklabel in ax2.yaxis.get_ticklabels():
-    #     ticklabel.set_position([-1,-1])
-
-    scatter2 = ax2.scatter( x, y1 ,c='black',marker='D',s=4)
-    ax.legend([scatter1,scatter2],['outliers','Relative wind orient'],loc='upper left')
-    # the box plot:
-    meanpointprops = dict(marker='D')
-    medianlineprops = dict(color='black')
+    line1 = ax.plot( x, y ,c='black',lw=0.5, zorder=1)
+    quiver = ax.quiver(x[outliers.index], outliers, 
+                    np.sin((y1[outliers.index]+180)/360*2*np.pi)*10, 
+                    np.cos((y1[outliers.index]+180)/360*2*np.pi)*10,
+                    color='blue')
+    # # 可选：平滑处理（须在py39环境下）
+    # import gma
+    # ysmo = gma.math.Smooth(y, 5, 2)
+    # ySG = ysmo.SavitzkyGolay(Polyorder=2, Delta=1, Mode='interp')
+    # yME = ysmo.MovingAverage()
+    # line_smooth = ax.plot(x, yME, c='tab:red')
+    ## twinx
+    # ax2=ax.twinx()
+    # ax2.tick_params(axis='y',which='major',direction='in')
+    # ax2.set_yticks([0,45,90,135,180,225,270,315,360])
+    # ax2.set_yticklabels(['N','NE','E','SE','S','SW','W','NW','N'])
+    # bar = ax2.bar(x[outliers.index], y1[outliers.index], width=0.05, alpha=0.5)
+    ax.legend([scatter1, quiver],['Outliers', 'Orient relative'],loc='upper left')
+    ## the box plot:
+    meanpointprops = {"color": "black", "linewidth": 1.5}
+    medianlineprops = dict(color='tab:red')
     ax_box.boxplot(y.dropna(), showmeans=True, meanprops=meanpointprops, medianprops=medianlineprops)
     ax_box.set_ylim(ax.get_ylim())
-    mu = y.mean()
-    sigma = y.std()
-    text = r'$\mu={0:.2f},\ \sigma={1:.3f}$'.format(mu, sigma)
-    ax_box.text(1, lim1 + extra_space/2, text, horizontalalignment="center", verticalalignment="center")
+    ax_box.set_yticks([0,1,2,3,4,5,6,7])
+    ax_box.set_yticklabels([0,1,2,3,4,5,6,7])
+    ax_box.yaxis.tick_right()
+
+    [box_info] = boxplot_stats(y)
+    # print(box_info)
+    # print('无偏std: ',np.std(y, ddof = 1))
+    median = box_info['med']
+    mu = box_info['mean']
+    text = r'$M:{:.2f}, \mu:{:.2f}$'.format(median, mu)
+    ax_box.text(1, lim0 - extra_space/2, text, horizontalalignment="center", verticalalignment="center")
     # save the figure
     today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
     plt.savefig("./pic/{}_boxplot".format(today), dpi=600)
     plt.close()
+    return outliers
 
 def main():
     df=read_ae33()
     lamda:int=880   # Select the wavelength to read
     BCkey = str(wavelengths.get(lamda))
     unit = units.get(BCkey) 
-    create_plot( x=df['Dateandtime'], y=df[BCkey], yunits=unit, ytitle="Equivalent Black Carbon")
+    outliers = plot_anal( x=df['Dateandtime'], y=df[BCkey], yunits=unit, ytitle="Equivalent Black Carbon")
 
 if __name__ == '__main__':
     main()
