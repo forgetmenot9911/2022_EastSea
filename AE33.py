@@ -82,7 +82,7 @@ def read_ae33():
         df[i]=df[i]/1000     
     return df
 
-def plot_anal( x, y, yunits,  ytitle, y1):
+def plot_anal( x, y, yunits,  ytitle, y2):
     '''
     绘制分析折线图
     y1, y1title: [optional]
@@ -127,14 +127,21 @@ def plot_anal( x, y, yunits,  ytitle, y1):
     QR=boxdict['Q3'] - boxdict['Q1']
     low_limit=boxdict['Q1'] - 1.5 * QR
     up_limit=boxdict['Q3'] + 1.5 * QR
-    outliers=y[(y < low_limit) + (y > up_limit)]
+    # outliers=y[(y < low_limit) + (y > up_limit)]
+    spots = y2[y2['BC6'] > 3]
+    # print('选择的高值点（已质控）：')
+    # [print(x,y) for x,y in zip(spots['lon'],spots['lat'])]
     ## main Axe
-    scatter1 = ax.scatter(x[outliers.index],outliers,c='black',marker='o',edgecolor='k',alpha=0.75,zorder=2)
-    line1 = ax.plot( x, y ,c='black',lw=0.5, zorder=1)
-    quiver = ax.quiver(x[outliers.index], outliers, 
-                    np.sin((y1[outliers.index]+180)/360*2*np.pi)*10, 
-                    np.cos((y1[outliers.index]+180)/360*2*np.pi)*10,
-                    color='blue')
+    # scatter1 = ax.scatter(x[outliers.index],outliers,c='black',marker='o',edgecolor='k',alpha=0.75,zorder=2)
+    line1 = ax.plot(x, y ,c='black',lw=0.5, zorder=1, label='$BC_{uncorrected}$')
+    line2 = ax.plot(x[y2.index], y2['BC6'],c='red',lw=0.5, zorder=1, label='$BC_{corrected}$')
+    scatter1 = ax.scatter(x[spots.index],spots['BC6'],c='black',marker='d')
+    print('使用Taketani方法数据剩余：{:.2f}%'.format(len(y2['BC6'])/len(y)*100))
+    ax.legend(loc='upper left')
+    # quiver = ax.quiver(x[outliers.index], outliers, 
+    #                 np.sin((y1[outliers.index]+180)/360*2*np.pi)*10, 
+    #                 np.cos((y1[outliers.index]+180)/360*2*np.pi)*10,
+    #                 color='blue')
     # # 可选：平滑处理（须在py39环境下）
     # import gma
     # ysmo = gma.math.Smooth(y, 5, 2)
@@ -147,28 +154,31 @@ def plot_anal( x, y, yunits,  ytitle, y1):
     # ax2.set_yticks([0,45,90,135,180,225,270,315,360])
     # ax2.set_yticklabels(['N','NE','E','SE','S','SW','W','NW','N'])
     # bar = ax2.bar(x[outliers.index], y1[outliers.index], width=0.05, alpha=0.5)
-    ax.legend([scatter1, quiver],['Outliers', 'Orient relative'],loc='upper left')
     ## the box plot:
-    meanpointprops = {"color": "black", "linewidth": 1.5}
-    medianlineprops = dict(color='tab:red')
-    ax_box.boxplot(y.dropna(), showmeans=True, meanprops=meanpointprops, medianprops=medianlineprops)
+    boxprops={"color":"red"}
+    whiskerprops={"color":"red"}
+    capprops={"color":"red"}
+    medianprops={"color":"red"}
+    ax_box.boxplot(y2['BC6'].dropna(), showfliers=False, 
+        boxprops=boxprops,whiskerprops=whiskerprops,capprops=capprops,medianprops=medianprops)
     ax_box.set_ylim(ax.get_ylim())
     ax_box.set_yticks([0,1,2,3,4,5,6,7])
     ax_box.set_yticklabels([0,1,2,3,4,5,6,7])
     ax_box.yaxis.tick_right()
 
-    [box_info] = boxplot_stats(y)
+    [box_info] = boxplot_stats(y2['BC6'])
     # print(box_info)
     # print('无偏std: ',np.std(y, ddof = 1))
-    median = box_info['med']
-    mu = box_info['mean']
-    text = r'$M:{:.2f}, \mu:{:.2f}$'.format(median, mu)
+    median = box_info['med']#中位数
+    mu = box_info['mean']#均值
+    std = np.std(y2['BC6'], ddof = 1)#无偏标准差
+    text = r'${:.2f} \pm {:.2f}$'.format(mu, std)
     ax_box.text(1, lim0 - extra_space/2, text, horizontalalignment="center", verticalalignment="center")
     # save the figure
     today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
     plt.savefig("./pic/{}_boxplot".format(today), dpi=600)
     plt.close()
-    return outliers
+    # return outliers
 
 def main():
     df=read_ae33()

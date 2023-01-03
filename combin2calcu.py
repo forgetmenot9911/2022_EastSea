@@ -7,6 +7,7 @@ import datetime, os, warnings;  warnings.filterwarnings('ignore')
 from meteo import read_meteo
 from AE33 import read_ae33,plot_anal,wavelengths,units
 from route import plot_route,plot_dere
+from matplotlib.cbook import boxplot_stats
 plt.rcParams['axes.unicode_minus'] = False 
 plt.rcParams['font.sans-serif'] = ['Times New Roman']
 
@@ -39,9 +40,9 @@ def plot_barBConLAND():
     #             'Shanghai \n(spring, edu. & commercial)', 
     #             'Ningbo \n(autumn, suburb)', 
     #             'Xiamen \n(annual, suburb)']
-    spotsOnland = ['Qingdao', 'Nanjing', 'Shanghai', 'Ningbo', 'Xiamen','This cruise']
-    conc = [1.53, 2.27, 2.16, 1.39, 4.27, 1.41]
-    error = [1.33, 1.4, 0.97, 0, 1.875, 0.924]
+    spotsOnland = ['Qingdao', 'Nanjing', 'Shanghai', 'Ningbo', 'Xiamen','NWP','Continentally influenced air mass\nWu et al.','Marine air mass\nWu et al.','This cruise']
+    conc = [1.53, 2.27, 2.16, 1.39, 4.27, 0.36, 0.47, 0.04, 1.35]
+    error = [1.33, 1.4, 0.97, 0, 1.875, 0.44, 0.47, 0.04, 0.78]
     y_pos = np.arange(len(spotsOnland))
     errorbar = ax.errorbar( conc, y_pos, xerr=error, ecolor='k',elinewidth=0.5,marker='s',mfc='orange',
 	                        mec='k',mew=1,ms=10,alpha=1,capsize=5,capthick=3,linestyle="none")
@@ -72,13 +73,13 @@ def plot_BCandDistance(df):
     pplt.rc['font.family'] = 'Times New Roman' 
     fig = pplt.figure(wspace=2, refwidth='20em')
     axs = fig.subplots(nrows=2, ncols=2)
-    scatterLinear(axs[0], model, df.BC6[37:53, np.newaxis], df.lon[37:53],c='blue')
-    scatterLinear(axs[1], model, df.BC6[70:103, np.newaxis], df.lon[70:103],c='orange')
-    scatterLinear(axs[2], model, df.BC6[170:189, np.newaxis], df.lon[170:189],c='green')
-    scatterLinear(axs[3], model, df.BC6[281:295, np.newaxis], df.lon[281:295],c='red')
-    for ax in axs:
-        ax.set_ylim([122, 126])
-        ax.set_xlim([0, 6]) 
+    scatterLinear(axs[0], model, df.BC6[30:38, np.newaxis], df.lon[30:38],c='blue')
+    scatterLinear(axs[1], model, df.BC6[55:75, np.newaxis], df.lon[55:75],c='orange')
+    scatterLinear(axs[2], model, df.BC6[113:130, np.newaxis], df.lon[113:130],c='green')
+    scatterLinear(axs[3], model, df.BC6[170:182, np.newaxis], df.lon[170:182],c='red')
+    # for ax in axs:
+    #     ax.set_ylim([122, 126])
+    #     ax.set_xlim([0, 6]) 
     axs.format(abc='a)', abcloc='ul',facecolor=None,xlabel='eBC',ylabel='Longitude [deg]')
     today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
     fig.save('./pic/{}_BCandDistance.png'.format(today), dpi=600)
@@ -96,35 +97,22 @@ def main():
     df = pd.merge(meteoinfo,ae33info,on='Dateandtime')
     del meteoinfo,ae33info
 
-    # 选取30 deg N附近的点，以便研究BC与离岸距离之间的关系
-    # plot_dere(df)
-    plot_BCandDistance(df)
-    quit()
-
     lamda:int=880   # Select the wavelength to read
     BCkey = str(wavelengths.get(lamda))
     unit = units.get(BCkey) 
 
-    # # 提取相对风向在90-270之间的数据，记为背风数据（Leeward, lw）
-    # lw = df['orient_relative']
-    # lw = lw[(lw>90) & (lw<270)]
-    # # 提取船速为0的数据，记为s0
-    # s0 = df['speed_zhenFeng']
-    # s0 = s0[s0 == 0]
-    # # 提取 1 min 真风速风向，记为ws1和wd1
-    # ws1 = df['speed_true_1min']
-    # wd1 = df['orient_true_1min']
-    # # 提取相对风速小于7.5的数据，记为弱风（weak wind，ww）
-    # ww = df['speed_relative']
-    # ww = ww[ww<7.5]
-   
+    # # 提取相对风向±60 deg和相对风速>3 m/s的数据
+    Taketani=df[df['speed_relative']>3]
+    Taketani=df[(df['orient_relative']<=60) | (df['orient_relative']>=300)]
+    # plot_dere(df,Taketani)
+    # plot_BCandDistance(Taketani)
+    [box_info] = boxplot_stats(Taketani[BCkey])
+    print('均值：{:.2f}'.format(box_info['mean']))
+    print('无偏标准差：{:.2f}'.format(np.std(Taketani[BCkey], ddof = 1)))
+
     ## plot
-    outliers = plot_anal(x=df['Dateandtime'], y=df[BCkey], yunits=unit, ytitle="Equivalent Black Carbon 880nm", y1=df['orient_relative'])
-    # outliersInfo = pd.concat([df['Dateandtime'][outliers.index], df['lat'][outliers.index], df['lon'][outliers.index]], axis=1)
-    # outliersInfo.to_excel('./output/outliers.xlsx')
-    
-    # 可选：剔除异常值（outliers）
-    df = df.drop(index=outliers.index)
+    plot_anal(x=df['Dateandtime'], y=df[BCkey],
+            yunits=unit, ytitle="Equivalent Black Carbon 880nm", y2=Taketani)
     
     # # 提取BC（880nm）,'press_1min','temp_1min','rh_1min','speed_true_1min'等物理量，并保存
     # df1 = df[['BC6','press_1min','temp_1min','rh_1min','speed_true_1min','lat','lon']]
@@ -134,19 +122,6 @@ def main():
     # df2 = df[['Dateandtime','BC1','BC2','BC3','BC4','BC5','BC6','BC7']]
     # print(df2)
     # df2.to_csv('BCx.csv',index=False)
-
-    # 提取30 deg N的观测点
-    # lat = df['lat']
-    # print(min(lat, key=lambda x: abs(x - 30)))
-    # n30 = df[df['lat']==30.000021666666665]
-    # print(n30)
-
-
-    # # 提取船速小于2.5的数据，记为低速航行（ls）
-    # ls = df[df['speed_GPS']<1]
-    # # 提取停船时刻数据（speed_GPS==0）
-    # stp = df[df['speed_GPS']==0]
-    # df_wwls = df[(df['speed_GPS']<0.6) & (df['speed_relative']<7.5)]
    
     ## 绘制随航BC浓度变化图
     # plot_route(df,BCkey,outliers)

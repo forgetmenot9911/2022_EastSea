@@ -92,7 +92,7 @@ def plot_route(df,BCkey,added):
     plt.savefig('./pic/{}_bcRoute'.format(today),dpi=600,bbox_inches='tight', pad_inches=0)
     plt.close()
 
-def plot_dere(df):
+def plot_dere(df1,df):
     import matplotlib.pyplot as plt
     import cartopy.crs as ccrs 
     import datetime
@@ -110,12 +110,11 @@ def plot_dere(df):
     # ax.plot(df.lon[204:250],df.lat[204:250],linewidth=0.75,color='yellow',zorder=3,label='Departing 3')
     # ax.plot(df.lon[250:],df.lat[250:],'--',linewidth=0.5,ms=1,color='tab:blue',zorder=2,label='Return')
 
-    ax.plot(df.lon,df.lat,linewidth=0.5,ms=1,color='k',zorder=2)
-    ax.scatter(df.lon[37:53],df.lat[37:53], s=1, c='blue')
-    ax.scatter(df.lon[70:103],df.lat[70:103], s=1,c='orange')# 30 deg
-    ax.scatter(df.lon[170:189],df.lat[170:189], s=1,c='green')
-    # ax.scatter(df.lon[245:260],df.lat[245:260], s=1)
-    ax.scatter(df.lon[281:295],df.lat[281:295], s=1,c='red')
+    ax.plot(df1.lon,df1.lat,linewidth=0.5,ms=1,color='k',zorder=2)
+    ax.scatter(df.lon[30:38],df.lat[30:38], s=1, c='blue')
+    ax.scatter(df.lon[55:75],df.lat[55:75], s=1,c='orange')# 30 deg    
+    ax.scatter(df.lon[113:130],df.lat[113:130], s=1,c='green')
+    ax.scatter(df.lon[170:182],df.lat[170:182], s=1,c='red')
 
     # plot_merra2(fig, ax, proj, 'BCEXTTAU')
     # plot_merra2(fig, ax, proj, 'BCSCATAU')
