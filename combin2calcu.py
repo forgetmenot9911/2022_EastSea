@@ -109,10 +109,12 @@ def main():
     [box_info] = boxplot_stats(Taketani[BCkey])
     print('均值：{:.2f}'.format(box_info['mean']))
     print('无偏标准差：{:.2f}'.format(np.std(Taketani[BCkey], ddof = 1)))
+    # 绘制随航BC浓度变化图
+    plot_route(Taketani,BCkey)
 
-    ## plot
-    plot_anal(x=df['Dateandtime'], y=df[BCkey],
-            yunits=unit, ytitle="Equivalent Black Carbon 880nm", y2=Taketani)
+    # plot
+    # plot_anal(x=df['Dateandtime'], y=df[BCkey],
+    #         yunits=unit, ytitle="Equivalent Black Carbon 880nm", y2=Taketani)
     
     # # 提取BC（880nm）,'press_1min','temp_1min','rh_1min','speed_true_1min'等物理量，并保存
     # df1 = df[['BC6','press_1min','temp_1min','rh_1min','speed_true_1min','lat','lon']]
@@ -123,8 +125,7 @@ def main():
     # print(df2)
     # df2.to_csv('BCx.csv',index=False)
    
-    ## 绘制随航BC浓度变化图
-    # plot_route(df,BCkey,outliers)
+
 
     ### 回归绘图
     # plot_seaborn(x = df_wwls[BCkey], y = df_wwls['speed_GPS'], mark='reg')

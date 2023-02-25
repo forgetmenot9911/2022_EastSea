@@ -128,9 +128,9 @@ def plot_anal( x, y, yunits,  ytitle, y2):
     low_limit=boxdict['Q1'] - 1.5 * QR
     up_limit=boxdict['Q3'] + 1.5 * QR
     # outliers=y[(y < low_limit) + (y > up_limit)]
-    spots = y2[y2['BC6'] > 3]
-    # print('选择的高值点（已质控）：')
-    # [print(x,y) for x,y in zip(spots['lon'],spots['lat'])]
+    spots = y2[y2['BC6'] > 3.4]
+    print('选择的高值点（已质控）：')
+    [print(x,y,t) for x,y,t in zip(spots['lon'],spots['lat'],spots['Dateandtime'])]
     ## main Axe
     # scatter1 = ax.scatter(x[outliers.index],outliers,c='black',marker='o',edgecolor='k',alpha=0.75,zorder=2)
     line1 = ax.plot(x, y ,c='black',lw=0.5, zorder=1, label='$BC_{uncorrected}$')

@@ -10,7 +10,7 @@ def set_geo(ax):
     shp_name='province.shp'
     proj=ccrs.PlateCarree()
     shp = cf.ShapelyFeature(Reader(shp_dir+shp_name).geometries(), ccrs.PlateCarree())
-    extent=[120, 127, 24, 38]
+    extent=[115, 127, 24, 38]
     ax.set_extent(extent, crs=proj) 
     ax.add_feature(cf.LAND)
     ax.add_feature(cf.OCEAN, facecolor='#97DBF2')
@@ -20,7 +20,7 @@ def set_geo(ax):
         ax.spines[i].set_visible(True)#开启Axes框线
         ax.spines[i].set_color('black')
         ax.spines[i].set_linewidth(1)
-    lb=ax.gridlines(draw_labels=True,x_inline=False, y_inline=False,xlocs=np.linspace(122,126,3), ylocs=range(26,38,2),
+    lb=ax.gridlines(draw_labels=True,x_inline=False, y_inline=False,xlocs=np.linspace(116,126,6), ylocs=range(26,38,2),
                     linewidth=0.2, color='black', alpha=0.8, linestyle='--',zorder=4)
     lb.top_labels = None
     lb.right_labels = None
@@ -40,7 +40,7 @@ def plot_spots():
     # plt.scatter(spots.lon,spots.lat,s=0.2,c='black')
     plt.savefig('spots_20220528.png',dpi=600,bbox_inches='tight',pad_inches=0)
 
-def plot_route(df,BCkey,added):
+def plot_route(df,BCkey):
     import matplotlib.pyplot as plt
     import cartopy.crs as ccrs 
     import datetime
@@ -51,23 +51,26 @@ def plot_route(df,BCkey,added):
     proj=ccrs.PlateCarree()
     fig = plt.figure(figsize=(4, 4))
     ax = plt.axes(projection=proj)
-    ax.set_global()
     set_geo(ax)
     scatter=ax.scatter(df.lon,df.lat,c=df[BCkey],s=2.5,cmap=plt.cm.jet,alpha=0.7,zorder=3)
     legend1 = ax.legend(*scatter.legend_elements(num=6),
-                    loc="lower right", ncol=2, markerscale=0.5,
+                    loc="upper left", ncol=2, markerscale=0.5,
                     title="BC$_{880} /\mu g \cdot m^{-3}$")
     ax.add_artist(legend1)
+    lon=df.lon
+    lat=df.lat
+    
+    ax.contourf()
+    spots=pd.read_csv('./spots_corrected_1.csv',sep=' ',header=None)
     ## 在总的outliers中，选择若干点
-    scatter2=ax.scatter(df.lon[added.index[[0,1,3,8,10,12,13]]],
-                        df.lat[added.index[[0,1,3,8,10,12,13]]],
+    scatter2=ax.scatter(spots[0],spots[1],
                         facecolor='none',edgecolor='k', alpha=0.5)
-    for index, i in zip([0,1,3,8,10,12,13], [1,2,3,4,5,6,7]):
-        ax.text(df.lon[added.index[index]]+0.25,
-                df.lat[added.index[index]]-0.25,'No.{}'.format(i))
+    for i, lon  in enumerate(spots[0]):
+        ax.text(spots[0][i]+0.25,
+                spots[1][i]-0.25,'No.{}'.format(i+1))
     ## 可选：导出选择后的outliers
     # pd.concat([df.lon[added.index[[0,1,3,8,10,12,13]]], df.lat[added.index[[0,1,3,8,10,12,13]]]], axis=1).to_csv('outliers_selected.csv',index=False)
-    ax.text(0.05,0.95,'b)', 
+    ax.text(0.95,0.95,'b)', 
         horizontalalignment='center',verticalalignment='center',transform=ax.transAxes)
         ### 可选：绘制同季节陆上近海站点BC分布图
     spotsOnland = ['Qingdao', 'Nanjing', 'Shanghai', 'Ningbo', 'Xiamen']
@@ -78,7 +81,7 @@ def plot_route(df,BCkey,added):
         ax.text(spotslon[i]-0.5 ,spotslat[i]+0.25, x)
         ### 添加：海洋标记
     seaname = ['Yellow Sea', 'East China Sea']
-    sealon = [121.90, 122]
+    sealon = [121.90, 121.99]
     sealat = [35.60, 27.50]
     for i , x in enumerate(seaname):
         ax.text(sealon[i],sealat[i],seaname[i], style='italic', color='blue', fontsize=13, alpha=0.5)
@@ -91,6 +94,7 @@ def plot_route(df,BCkey,added):
     today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
     plt.savefig('./pic/{}_bcRoute'.format(today),dpi=600,bbox_inches='tight', pad_inches=0)
     plt.close()
+    
 
 def plot_dere(df1,df):
     import matplotlib.pyplot as plt
