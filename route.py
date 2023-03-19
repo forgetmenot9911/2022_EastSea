@@ -12,10 +12,10 @@ def set_geo(ax):
     shp = cf.ShapelyFeature(Reader(shp_dir+shp_name).geometries(), ccrs.PlateCarree())
     extent=[115, 127, 24, 38]
     ax.set_extent(extent, crs=proj) 
-    ax.add_feature(cf.LAND)
-    ax.add_feature(cf.OCEAN, facecolor='#97DBF2')
-    ax.add_feature(shp,  linewidth=0.15, edgecolor='gray', facecolor='none',zorder=4)
-    ax.outline_patch.set_visible(False)#关闭GeoAxes框线
+    ax.add_feature(cf.LAND, linewidth=0.2, facecolor='none', edgecolor='gray', zorder=5)
+    # ax.add_feature(cf.OCEAN, facecolor='#97DBF2')
+    ax.add_feature(shp, linewidth=0.15, edgecolor='gray', facecolor='none',zorder=5)
+    # ax.outline_patch.set_visible(False)#关闭GeoAxes框线
     for i in ['left','bottom','right', 'top']:
         ax.spines[i].set_visible(True)#开启Axes框线
         ax.spines[i].set_color('black')
@@ -70,8 +70,8 @@ def plot_route(df,BCkey):
                 spots[1][i]-0.25,'No.{}'.format(i+1))
     ## 可选：导出选择后的outliers
     # pd.concat([df.lon[added.index[[0,1,3,8,10,12,13]]], df.lat[added.index[[0,1,3,8,10,12,13]]]], axis=1).to_csv('outliers_selected.csv',index=False)
-    ax.text(0.95,0.95,'b)', 
-        horizontalalignment='center',verticalalignment='center',transform=ax.transAxes)
+    # ax.text(0.95,0.95,'b)', 
+    #     horizontalalignment='center',verticalalignment='center',transform=ax.transAxes)
         ### 可选：绘制同季节陆上近海站点BC分布图
     spotsOnland = ['Qingdao', 'Nanjing', 'Shanghai', 'Ningbo', 'Xiamen']
     spotslon = [120.68, 118.715, 121.59, 121.91, 118.05]
@@ -80,7 +80,7 @@ def plot_route(df,BCkey):
     for i, x in enumerate(spotsOnland):
         ax.text(spotslon[i]-0.5 ,spotslat[i]+0.25, x)
         ### 添加：海洋标记
-    seaname = ['Yellow Sea', 'East China Sea']
+    seaname = ['Yellow Sea', 'East China \nSea']
     sealon = [121.90, 121.99]
     sealat = [35.60, 27.50]
     for i , x in enumerate(seaname):
@@ -96,7 +96,10 @@ def plot_route(df,BCkey):
     plt.close()
     
 
-def plot_dere(df1,df):
+def plot_dere(df,*args):
+    '''
+    航线示意图
+    '''
     import matplotlib.pyplot as plt
     import cartopy.crs as ccrs 
     import datetime
@@ -108,25 +111,24 @@ def plot_dere(df1,df):
     fig = plt.figure(figsize=(4, 4))
     ax = plt.axes(projection=proj)
     set_geo(ax)
+    # AOD plot with wind(optional)
+    plot_merra2(fig, ax, proj, 'BCSMASS')# Black Carbon Surface Mass Concentration (μg m-3)
+    # 航线示意图
+    ax.plot(df.lon[:150],df.lat[:150],linewidth=0.5,color='black',zorder=2,label='Departing 1')
+    ax.plot(df.lon[150:204],df.lat[150:204],linewidth=0.25,color='tab:red',zorder=4,label='Departing 2')
+    ax.plot(df.lon[204:250],df.lat[204:250],linewidth=0.75,color='yellow',zorder=3,label='Departing 3')
+    ax.plot(df.lon[250:],df.lat[250:],'--',linewidth=0.5,ms=1,color='black',zorder=2,label='Return')
+    ax.text(0.05,0.95,'a)', size='large', weight='bold',horizontalalignment='center',verticalalignment='center',transform=ax.transAxes)
+    plt.legend(loc='lower right')
+
+    # BC与离岸距离-散点图
+    # ax.plot(df1.lon,df1.lat,linewidth=0.5,ms=1,color='k',zorder=2)
+    # ax.scatter(df.lon[30:38],df.lat[30:38], s=1, c='blue')
+    # ax.scatter(df.lon[55:75],df.lat[55:75], s=1,c='orange')# 30 deg    
+    # ax.scatter(df.lon[113:130],df.lat[113:130], s=1,c='green')
+    # ax.scatter(df.lon[170:182],df.lat[170:182], s=1,c='red')
     
-    # ax.plot(df.lon[:150],df.lat[:150],linewidth=0.5,color='black',zorder=2,label='Departing 1')
-    # ax.plot(df.lon[150:204],df.lat[150:204],linewidth=0.25,color='tab:red',zorder=4,label='Departing 2')
-    # ax.plot(df.lon[204:250],df.lat[204:250],linewidth=0.75,color='yellow',zorder=3,label='Departing 3')
-    # ax.plot(df.lon[250:],df.lat[250:],'--',linewidth=0.5,ms=1,color='tab:blue',zorder=2,label='Return')
 
-    ax.plot(df1.lon,df1.lat,linewidth=0.5,ms=1,color='k',zorder=2)
-    ax.scatter(df.lon[30:38],df.lat[30:38], s=1, c='blue')
-    ax.scatter(df.lon[55:75],df.lat[55:75], s=1,c='orange')# 30 deg    
-    ax.scatter(df.lon[113:130],df.lat[113:130], s=1,c='green')
-    ax.scatter(df.lon[170:182],df.lat[170:182], s=1,c='red')
-
-    # plot_merra2(fig, ax, proj, 'BCEXTTAU')
-    # plot_merra2(fig, ax, proj, 'BCSCATAU')
-
-    # ax.text(0.05,0.95,'a)', 
-    #     horizontalalignment='center',verticalalignment='center',transform=ax.transAxes)
-    
-    # plt.legend(loc='lower right')
     today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
     plt.savefig('./pic/{}_cruiseRoute.png'.format(today),dpi=600,bbox_inches='tight', pad_inches=0)
     plt.close()

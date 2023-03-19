@@ -13,13 +13,14 @@ units={
     'ColumnAmountNO2Trop':'$molec/cm^2$'
 }
 def readNC(varname):
-    data = Dataset("E:\programming\code_2022_6\MERRA-2\MERRA2_400.tavgM_2d_aer_Nx.202204.nc4", mode='r')
+    data = Dataset("E:\MERRA2-AAE\MERRA2_400.tavgM_2d_aer_Nx.202204.nc4", mode='r')
     lons = data.variables['lon'][:]
     lats = data.variables['lat'][:]
     lon, lat = np.meshgrid(lons, lats)
-    
+    fv= unit = data.variables[varname]._FillValue
     if varname in ['BCSMASS', 'SO2SMASS','SO2CMASS','DUSMASS25','DUSMASS']:
         var = data.variables[varname][0,:,:]*1e9 # 取第一层，并转换单位：（kg m-3）->（μg m-3）,（kg m-2）->（μg m-2）
+        var[var==fv] = np.nan
     else:
         var = data.variables[varname][0,:,:]
     unit = data.variables[varname].units 
@@ -62,18 +63,22 @@ def plot_merra2(fig, ax, proj, varname):
     import cartopy.crs as ccrs 
     import datetime, cmaps
     (lon,lat,var,unit) = readNC(varname)
-    levels = np.arange(0,0.016,0.0001)
-    cm = ax.contourf(lon, lat, var, levels, transform=proj, cmap=plt.cm.jet, zorder=1)
+    # levels = np.arange(1,6,5e-2)
+    levels = np.arange(0,6,6e-2)
+    cm = ax.contourf(lon, lat, var,
+                      levels, 
+                      linewidths=0.5, transform=proj, cmap='rainbow', zorder=1)
+    # ax.clabel(cm, fontsize=9, inline=True)
     cb = fig.colorbar(cm, orientation="vertical", pad=0.02, aspect=16, shrink=0.8, extend=None)
-    cb.set_label(unit,rotation=270,labelpad=10)
+    ## cb.set_label(unit,rotation=270,labelpad=10)
     ax2=cb.ax # 调出colorbar的ax属性
     ax2.tick_params(direction='in')
-    if varname=='BCCMASS':
-        (lon,lat,u,unit) = readNC('BCFLUXU')
-        (lon,lat,v,unit) = readNC('BCFLUXV')
-        speed = np.sqrt(u**2 + v**2)
-        lw = 5*speed / speed.max()
-        ax.streamplot(lon,lat,u,v, color=speed, density=0.5, linewidth=1, cmap=cmaps.cmocean_gray_r, zorder=4)
+    ax2.set_title('$\mu g /m^{3}$')
+    (lon,lat,u,unit) = readNC('BCFLUXU')
+    (lon,lat,v,unit) = readNC('BCFLUXV')
+    speed = np.sqrt(u**2 + v**2)
+    lw = speed / speed.max()
+    ax.streamplot(lon,lat,u,v, color='white', arrowsize=0.6, density=[0.5, 1], linewidth=0.1, zorder=1)
 
 def plot_omi(varname, titlename, unit):
     import matplotlib.pyplot as plt

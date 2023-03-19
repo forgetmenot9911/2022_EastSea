@@ -84,7 +84,7 @@ def read_ae33():
 
 def plot_anal( x, y, yunits,  ytitle, y2):
     '''
-    绘制分析折线图
+    绘制BC时间序列变化折线图
     y1, y1title: [optional]
     y & y1: left & right
     '''
@@ -136,7 +136,7 @@ def plot_anal( x, y, yunits,  ytitle, y2):
     line1 = ax.plot(x, y ,c='black',lw=0.5, zorder=1, label='$BC_{uncorrected}$')
     line2 = ax.plot(x[y2.index], y2['BC6'],c='red',lw=0.5, zorder=1, label='$BC_{corrected}$')
     scatter1 = ax.scatter(x[spots.index],spots['BC6'],c='black',marker='d')
-    print('使用Taketani方法数据剩余：{:.2f}%'.format(len(y2['BC6'])/len(y)*100))
+    print('使用Taketani方法数据剩余: {:.2f}%'.format(len(y2['BC6'])/len(y)*100))
     ax.legend(loc='upper left')
     # quiver = ax.quiver(x[outliers.index], outliers, 
     #                 np.sin((y1[outliers.index]+180)/360*2*np.pi)*10, 

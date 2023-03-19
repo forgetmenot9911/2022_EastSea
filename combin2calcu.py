@@ -40,9 +40,15 @@ def plot_barBConLAND():
     #             'Shanghai \n(spring, edu. & commercial)', 
     #             'Ningbo \n(autumn, suburb)', 
     #             'Xiamen \n(annual, suburb)']
-    spotsOnland = ['Qingdao', 'Nanjing', 'Shanghai', 'Ningbo', 'Xiamen','NWP','Continentally influenced air mass\nWu et al.','Marine air mass\nWu et al.','This cruise']
-    conc = [1.53, 2.27, 2.16, 1.39, 4.27, 0.36, 0.47, 0.04, 1.35]
-    error = [1.33, 1.4, 0.97, 0, 1.875, 0.44, 0.47, 0.04, 0.78]
+    spotsOnland = ['Qingdao', 'Nanjing', 'Shanghai', 'Ningbo', 'Xiamen','NWPO','Arctic Ocean',
+                #    'Continentally influenced air mass\nWu et al.','Marine air mass\nWu et al.',
+                   'This cruise']
+    conc = [1.53, 2.27, 2.16, 1.39, 4.27, 0.36, 0.03036,
+            #  0.47, 0.04,
+               1.35]
+    error = [1.33, 1.4, 0.97, 0, 1.875, 0.44, 0.06201,
+            #   0.47, 0.04, 
+              0.78]
     y_pos = np.arange(len(spotsOnland))
     errorbar = ax.errorbar( conc, y_pos, xerr=error, ecolor='k',elinewidth=0.5,marker='s',mfc='orange',
 	                        mec='k',mew=1,ms=10,alpha=1,capsize=5,capthick=3,linestyle="none")
@@ -67,6 +73,9 @@ def scatterLinear(ax, model, x, y, c):
     text = '$R$ = {:.4f}{}$p$ = {:.3f}'.format(r, '\n', p)
     ax.text(0.7,0.9, text, transform=ax.transAxes)
 def plot_BCandDistance(df):
+    '''
+    BC与离岸距离-相互关系图
+    '''
     import proplot as pplt 
     from sklearn.linear_model import LinearRegression
     model = LinearRegression()
@@ -84,16 +93,16 @@ def plot_BCandDistance(df):
     today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
     fig.save('./pic/{}_BCandDistance.png'.format(today), dpi=600)
 def main():
-    # ## 绘制陆上BC条状图
-    # plot_barBConLAND()
+    # plot_barBConLAND()# 绘制“previous studies v.s. this study” BC条状图
     # quit()
 
     meteoinfo = read_meteo(markHour=True)
     ae33info  = read_ae33()
 
-    # ### 绘制往返航线图
-    # plot_dere(meteoinfo)
-    # quit()
+    # 绘制往返航线图
+    plot_dere(df=meteoinfo)
+    quit()
+
     df = pd.merge(meteoinfo,ae33info,on='Dateandtime')
     del meteoinfo,ae33info
 
@@ -101,24 +110,24 @@ def main():
     BCkey = str(wavelengths.get(lamda))
     unit = units.get(BCkey) 
 
-    # # 提取相对风向±60 deg和相对风速>3 m/s的数据
+    # 校对数据：提取相对风向±60 deg和相对风速>3 m/s的数据
     Taketani=df[df['speed_relative']>3]
     Taketani=df[(df['orient_relative']<=60) | (df['orient_relative']>=300)]
-    # plot_dere(df,Taketani)
-    # plot_BCandDistance(Taketani)
     [box_info] = boxplot_stats(Taketani[BCkey])
     print('均值：{:.2f}'.format(box_info['mean']))
     print('无偏标准差：{:.2f}'.format(np.std(Taketani[BCkey], ddof = 1)))
-    # 绘制随航BC浓度变化图
-    plot_route(Taketani,BCkey)
+    
 
     # plot
-    # plot_anal(x=df['Dateandtime'], y=df[BCkey],
-    #         yunits=unit, ytitle="Equivalent Black Carbon 880nm", y2=Taketani)
+    # plot_route(Taketani,BCkey)#绘制随航BC浓度变化图
+    # plot_dere(df,Taketani)#BC与离岸距离-散点图
+    # plot_BCandDistance(Taketani)#BC与离岸距离-相互关系图
+    # BC时间序列变化-折线图
+    # plot_anal(x=df['Dateandtime'], y=df[BCkey], yunits=unit, ytitle="Equivalent Black Carbon 880nm", y2=Taketani)
     
-    # # 提取BC（880nm）,'press_1min','temp_1min','rh_1min','speed_true_1min'等物理量，并保存
-    # df1 = df[['BC6','press_1min','temp_1min','rh_1min','speed_true_1min','lat','lon']]
-    # df1.to_csv('df1.csv',index=False)
+    # BCvsMeteo相互关系图
+    # BCvsMeteo = Taketani[['BC6','press_1min','temp_1min','rh_1min','speed_true_1min','lat','lon']]
+    # BCvsMeteo.to_csv('BCvsMeteo.csv',index=False)
 
     # # 提取各波段BC：BC1(370nm)、BC2(470nm)、BC3(520nm)、BC4(590nm)、BC5(660nm)、BC6(880nm)、BC7(950nm), 并保存
     # df2 = df[['Dateandtime','BC1','BC2','BC3','BC4','BC5','BC6','BC7']]
