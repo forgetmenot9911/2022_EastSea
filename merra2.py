@@ -69,16 +69,31 @@ def plot_merra2(fig, ax, proj, varname):
                       levels, 
                       linewidths=0.5, transform=proj, cmap='rainbow', zorder=1)
     # ax.clabel(cm, fontsize=9, inline=True)
-    cb = fig.colorbar(cm, orientation="vertical", pad=0.02, aspect=16, shrink=0.8, extend=None)
+    cax1=fig.add_axes([0.89,0.35,0.03,0.4])
+    cb = fig.colorbar(cm, 
+                    #   orientation="vertical", 
+                    #   pad=0.0005,  shrink=0.4, 
+                      extend=None, cax=cax1)
     ## cb.set_label(unit,rotation=270,labelpad=10)
     ax2=cb.ax # 调出colorbar的ax属性
     ax2.tick_params(direction='in')
-    ax2.set_title('$\mu g /m^{3}$')
+    # ax2.set_title('$\mu g /m^{3}$')
     (lon,lat,u,unit) = readNC('BCFLUXU')
     (lon,lat,v,unit) = readNC('BCFLUXV')
-    speed = np.sqrt(u**2 + v**2)
-    lw = speed / speed.max()
-    ax.streamplot(lon,lat,u,v, color='white', arrowsize=0.6, density=[0.5, 1], linewidth=0.1, zorder=1)
+    flux = np.sqrt(u**2 + v**2)
+    # lw = flux / flux.max()
+    strm = ax.streamplot(lon,lat,u,v, 
+                        #  color=lw, 
+                        color=flux*1e3*1e2,#kg m-1 s-1 -> g m-1 s-1 -> 10^-2 g m-1 s-1
+                         arrowsize=0.6, cmap='binary', linewidth=0.1, zorder=1)
+    cax2=fig.add_axes([0.99,0.35,0.03,0.4])
+    cb_strm = fig.colorbar(strm.lines, 
+                        #    ticks=np.linspace(0,0.6,7),
+                        #    shrink=0.4, pad=0.04, 
+                           format='%.2g', extend=None, cax=cax2)
+    ax_strm=cb_strm.ax # 调出colorbar的ax属性
+    ax_strm.tick_params(direction='in')
+    # ax_strm.set_title('$\  g/(m\;s)$')
 
 def plot_omi(varname, titlename, unit):
     import matplotlib.pyplot as plt

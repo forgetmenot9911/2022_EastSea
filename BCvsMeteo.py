@@ -58,6 +58,7 @@ def main():
 
 
     pplt.rc['font.family'] = 'Times New Roman' 
+    pplt.rc['font.size']=9
     fig = pplt.figure(wspace=3.5, refwidth='20em', sharey=False)
     axs = fig.subplots(nrows=2, ncols=2)
     for ax,fact,label in zip(axs,facts,labels):
@@ -78,15 +79,24 @@ def main1():
     import datetime
     plt.rcParams['axes.unicode_minus'] = False 
     plt.rcParams['font.sans-serif'] = ['Times New Roman']
-    plt.rcParams['font.size']=5
+    plt.rcParams['font.size']=9
     proj=ccrs.PlateCarree()
     fig = plt.figure(figsize=(4, 4))
     ax = plt.axes(projection=proj)
     set_geo(ax)
-    plot_squ(ax, target=[33,45, 120,126])
-    plot_squ(ax, target=[25,33, 120,131])
+    # plot_squ(ax, target=[33,45, 120,126])
+    # plot_squ(ax, target=[25,33, 120,131])
     today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
     plt.savefig('./pic/{}_YSandECS.png'.format(today),dpi=600,bbox_inches='tight', pad_inches=0)
     plt.close()
+
+def plot_heat():
+    import pandas as pd
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    df = pd.read_csv('./BCvsMeteo.csv',header=0)
+    
+
+
 if __name__ == '__main__':
     main()

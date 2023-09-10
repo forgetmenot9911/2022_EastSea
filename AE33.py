@@ -106,8 +106,8 @@ def plot_anal( x, y, yunits,  ytitle, y2):
     box = plt.figure(figsize=(12, 6))
     ax = plt.axes(rect_scatter)
     ax.tick_params(direction='in', top=False, right=True)
-    ax_box = plt.axes(rect_box)
-    ax_box.tick_params(direction='in', labelleft=False, labelbottom=False)
+    # ax_box = plt.axes(rect_box)
+    # ax_box.tick_params(direction='in', labelleft=False, labelbottom=False)
 
     # now determine nice limits by hand:
     lim0 = y.min()
@@ -134,8 +134,12 @@ def plot_anal( x, y, yunits,  ytitle, y2):
     ## main Axe
     # scatter1 = ax.scatter(x[outliers.index],outliers,c='black',marker='o',edgecolor='k',alpha=0.75,zorder=2)
     line1 = ax.plot(x, y ,c='black',lw=0.5, zorder=1, label='$BC_{uncorrected}$')
-    line2 = ax.plot(x[y2.index], y2['BC6'],c='red',lw=0.5, zorder=1, label='$BC_{corrected}$')
     scatter1 = ax.scatter(x[spots.index],spots['BC6'],c='black',marker='d')
+    line2 = ax.scatter(x[y2.index], y2['BC6'],c='red',
+                    #    lw=0.5, 
+                    s=3,
+                       zorder=1, label='$BC_{corrected}$')
+    
     print('使用Taketani方法数据剩余: {:.2f}%'.format(len(y2['BC6'])/len(y)*100))
     ax.legend(loc='upper left')
     # quiver = ax.quiver(x[outliers.index], outliers, 
@@ -159,12 +163,12 @@ def plot_anal( x, y, yunits,  ytitle, y2):
     whiskerprops={"color":"red"}
     capprops={"color":"red"}
     medianprops={"color":"red"}
-    ax_box.boxplot(y2['BC6'].dropna(), showfliers=False, 
-        boxprops=boxprops,whiskerprops=whiskerprops,capprops=capprops,medianprops=medianprops)
-    ax_box.set_ylim(ax.get_ylim())
-    ax_box.set_yticks([0,1,2,3,4,5,6,7])
-    ax_box.set_yticklabels([0,1,2,3,4,5,6,7])
-    ax_box.yaxis.tick_right()
+    # ax_box.boxplot(y2['BC6'].dropna(), showfliers=False, 
+    #     boxprops=boxprops,whiskerprops=whiskerprops,capprops=capprops,medianprops=medianprops)
+    # ax_box.set_ylim(ax.get_ylim())
+    # ax_box.set_yticks([0,1,2,3,4,5,6,7])
+    # ax_box.set_yticklabels([0,1,2,3,4,5,6,7])
+    # ax_box.yaxis.tick_right()
 
     [box_info] = boxplot_stats(y2['BC6'])
     # print(box_info)
@@ -173,7 +177,7 @@ def plot_anal( x, y, yunits,  ytitle, y2):
     mu = box_info['mean']#均值
     std = np.std(y2['BC6'], ddof = 1)#无偏标准差
     text = r'${:.2f} \pm {:.2f}$'.format(mu, std)
-    ax_box.text(1, lim0 - extra_space/2, text, horizontalalignment="center", verticalalignment="center")
+    # ax_box.text(1, lim0 - extra_space/2, text, horizontalalignment="center", verticalalignment="center")
     # save the figure
     today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
     plt.savefig("./pic/{}_boxplot".format(today), dpi=600)

@@ -2,17 +2,26 @@ from distutils.log import error
 import pandas as pd 
 import numpy as np
 import seaborn as sns
+from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import datetime, os, warnings;  warnings.filterwarnings('ignore')
 from meteo import read_meteo
 from AE33 import read_ae33,plot_anal,wavelengths,units
 from route import plot_route,plot_dere
 from matplotlib.cbook import boxplot_stats
-plt.rcParams['axes.unicode_minus'] = False 
+# plt.rcParams['axes.unicode_minus'] = False 
 plt.rcParams['font.sans-serif'] = ['Times New Roman']
+plt.rcParams['font.size']=9
+
+def r2_score(true, pred):
+    y_mean = np.mean(true)
+    sst = np.sum(np.square(true - y_mean))
+    ssr = np.sum(np.square(pred - y_mean))
+    sse = np.sum(np.square(true - pred))
+    r2 = 1 - sse / sst
+    return r2
 
 def plot_seaborn(x,y,mark):
-    from scipy.stats import pearsonr
     '''
     mark:'reg','joint_reg'
     '''
@@ -22,7 +31,7 @@ def plot_seaborn(x,y,mark):
     print('r= '+str(r)+', p= '+str(p))
     f, ax = plt.subplots(figsize=(4, 6))
     if mark == 'joint_reg':
-        jg = sns.jointplot(x , y ,kind = 'reg')
+        jg = sns.jointplot(x=x , y=y ,kind = 'reg')
         # ('r='+str(r)+'\n p='+str(p))
     if mark == 'reg':
         sns.regplot(x , y)
@@ -71,7 +80,7 @@ def scatterLinear(ax, model, x, y, c):
     # print(x.ravel().shape, np.array(y).shape)
     (r, p)=pearsonr(x.ravel(), np.array(y))
     text = '$R$ = {:.4f}{}$p$ = {:.3f}'.format(r, '\n', p)
-    ax.text(0.7,0.9, text, transform=ax.transAxes)
+    ax.text(0.7,0.9, text, weight='bold', color=c,transform=ax.transAxes)
 def plot_BCandDistance(df):
     '''
     BC与离岸距离-相互关系图
@@ -92,6 +101,50 @@ def plot_BCandDistance(df):
     axs.format(abc='a)', abcloc='ul',facecolor=None,xlabel='eBC',ylabel='Longitude [deg]')
     today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
     fig.save('./pic/{}_BCandDistance.png'.format(today), dpi=600)
+def plot_BCBB(df,BCkey):
+    '''
+    BC&BB占比(%)-折线图与相互关系图
+    '''
+    x=df['BB(%)']
+    y=df[BCkey]
+    ## 提取YS
+    # ys  = df[ (df['lat']<=37) & (df['lat']>=33) & (df['lon']>=120) & (df['lon']<=126.25)]
+    ## 提取ECS
+    # ecs = df[ (df['lat']<=32) & (df['lat']>=25) & (df['lon']>=120) & (df['lon']<=126.875) ]
+    # 判断是否为YS，是赋值‘YS’，否赋值‘ECS’
+    df['Marginal Sea']=df['lat'].apply(lambda x:'YS' if (x>=32.5) else 'ECS')
+     
+    # corr = pd.concat([x, y], axis=1).corr()
+    # print(corr)
+    (r, p)=pearsonr(df['BB(%)'], df[BCkey])
+    print('Total corr: \nR2= {:3f}, r= {:3f}, p= {:6f}'.format(r**2,r,p))
+    
+
+    ax = sns.lmplot(data=df,x='BB(%)', y=BCkey, hue="Marginal Sea", 
+               markers=['o','+'], 
+               palette=['blue','red'],
+            #    order=3,
+               facet_kws={'legend_out':False})
+
+    plt.ylabel('BC Conc. (μg/m$^3$)')
+    # YS
+    (r, p)=pearsonr(x[df[df['Marginal Sea']=='YS'].index], y[df[df['Marginal Sea']=='YS'].index])
+    text = 'YS\nR$^2$ = {:.4f}\np = {:.5f}'.format(r**2, p)
+    plt.text( 50, -.2, text, 
+             weight="bold", 
+            #  transform=ax.transAxes, 
+             color='blue')
+    # ECS
+    (r, p)=pearsonr(x[df[df['Marginal Sea']!='YS'].index], y[df[df['Marginal Sea']!='YS'].index])
+    text = 'ECS\nR$^2$ = {:.4f}\np = {:.5f}'.format(r**2, p)
+    plt.text( 50, 2, text, 
+             weight="bold", 
+            #  transform=ax.transAxes, 
+             color='red')
+
+    today = datetime.datetime.strftime(datetime.datetime.now(),'%Y%m%d')
+    plt.savefig('./pic/{}_BC&BB_Seaborn'.format(today),dpi=600)
+    plt.close()
 def main():
     # plot_barBConLAND()# 绘制“previous studies v.s. this study” BC条状图
     # quit()
@@ -100,8 +153,8 @@ def main():
     ae33info  = read_ae33()
 
     # 绘制往返航线图
-    plot_dere(df=meteoinfo)
-    quit()
+    # plot_dere(df=meteoinfo)
+    # quit()
 
     df = pd.merge(meteoinfo,ae33info,on='Dateandtime')
     del meteoinfo,ae33info
@@ -113,23 +166,27 @@ def main():
     # 校对数据：提取相对风向±60 deg和相对风速>3 m/s的数据
     Taketani=df[df['speed_relative']>3]
     Taketani=df[(df['orient_relative']<=60) | (df['orient_relative']>=300)]
-    [box_info] = boxplot_stats(Taketani[BCkey])
-    print('均值：{:.2f}'.format(box_info['mean']))
-    print('无偏标准差：{:.2f}'.format(np.std(Taketani[BCkey], ddof = 1)))
+    # （可选）调整数据：去除BB占比==0的点
+    Taketani=Taketani[Taketani['BB(%)']!=0]
     
-
+    # BCvsMeteo相互关系图
+    BCvsMeteo = Taketani[['BC6','press_1min','temp_1min','rh_1min','speed_true_1min','lat','lon']]
+    BCvsMeteo.to_csv('BCvsMeteo.csv',index=False)
+    
+    # [box_info] = boxplot_stats(Taketani[BCkey])
+    # print('均值：{:.2f}'.format(box_info['mean']))
+    # print('无偏标准差：{:.2f}'.format(np.std(Taketani[BCkey], ddof = 1)))
+    
     # plot
     # plot_route(Taketani,BCkey)#绘制随航BC浓度变化图
-    # plot_dere(df,Taketani)#BC与离岸距离-散点图
+    # plot_dere(Taketani)#BC与离岸距离-散点图
     # plot_BCandDistance(Taketani)#BC与离岸距离-相互关系图
+    # plot_dere(Taketani,name='BB')#BB占比（%）-散点图
+    plot_BCBB(Taketani,BCkey)#BC&BB占比（%）-折线图与相互关系图
     # BC时间序列变化-折线图
     # plot_anal(x=df['Dateandtime'], y=df[BCkey], yunits=unit, ytitle="Equivalent Black Carbon 880nm", y2=Taketani)
     
-    # BCvsMeteo相互关系图
-    # BCvsMeteo = Taketani[['BC6','press_1min','temp_1min','rh_1min','speed_true_1min','lat','lon']]
-    # BCvsMeteo.to_csv('BCvsMeteo.csv',index=False)
-
-    # # 提取各波段BC：BC1(370nm)、BC2(470nm)、BC3(520nm)、BC4(590nm)、BC5(660nm)、BC6(880nm)、BC7(950nm), 并保存
+    # 提取各波段BC：BC1(370nm)、BC2(470nm)、BC3(520nm)、BC4(590nm)、BC5(660nm)、BC6(880nm)、BC7(950nm), 并保存
     # df2 = df[['Dateandtime','BC1','BC2','BC3','BC4','BC5','BC6','BC7']]
     # print(df2)
     # df2.to_csv('BCx.csv',index=False)
