@@ -1,7 +1,0 @@
-中文致谢：感谢中国科学院大气物理研究所黄永杰博士提供的包含正确中国国界
-和行政区划的地图数据（https://github.com/huangynj/Python-Chinamap.git）。
-
-英文致谢：Thank Dr. Yongjie Huang (IAP/CAS) for providing map database 
-(https://github.com/huangynj/Python-Chinamap.git).
-Thanks to Alejandro Keller for the useful code reference for this article on AE33 data processing.
-(https://github.com/alejandrokeller/aethalometer.git).
