@@ -1,6 +1,6 @@
 # 2022_EastSea
 
-Here are the main codes building my first paper in English. If this repository helps you, please consider cite the paper below. Thanks a lot!
+Here are the main codes building my first paper in English. If this repository helps you, please consider to cite the paper below. Thanks a lot!
 
 ```bib
 @Article{rs15133262,
